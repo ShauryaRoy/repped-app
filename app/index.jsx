@@ -1,75 +1,87 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
-import { useFonts } from "expo-font";
-import { useEffect } from 'react'
-import Icon from 'react-native-vector-icons/FontAwesome';
-import { SplashScreen } from "expo-router";
+// import React from 'react';
+// import { View, Text } from 'react-native';
 
-SplashScreen.preventAutoHideAsync();
-const Login = () => {
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('');
+// export default function Index() {
+//     return (
+//         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+//             <Text>Welcome to the Home Screen</Text>
+//         </View>
+//     );
+// }
 
-    const handleLogin = () => {
-        console.log(email, password)
-    }
-    const [fontsloaded, error] = useFonts({
-        "Convergence-Regular": require("../assets/fonts/Convergence-Regular.ttf"),
-    })
+
+import React, { useEffect, useState } from 'react';
+import TinderCard from 'react-tinder-card';
+import axios from 'axios';
+import { View, Text, Image, StyleSheet } from 'react-native';
+import { styled } from 'nativewind';
+
+const StyledView = styled(View);
+const StyledText = styled(Text);
+const StyledImage = styled(Image);
+
+export default function Index() {
+    const [cards, setCards] = useState([]);
 
     useEffect(() => {
-        if (error) throw error;
-        if (fontsloaded) SplashScreen.hideAsync();
-    }, [fontsloaded, error])
+        const fetchCards = async () => {
+            try {
+                const response = await axios.get('http://192.168.1.7:3000/products');
+                setCards(Array.isArray(response.data) ? response.data : "erroe");
+            } catch (error) {
+                console.error("Error fetching cards:", error);
+            }
+        };
 
-    if (!fontsloaded && !error) return null;
+        fetchCards();
+    }, []);
+
+    const swiped = (direction, nameToDelete) => {
+        console.log(`Removing: ${nameToDelete} to the ${direction}`);
+    };
+
+    const outOfFrame = (name) => {
+        console.log(`${name} left the screen!`);
+    };
 
     return (
-        <>
-            <View className="flex items-center mt-20">
-                <Text className="text-3xl font-convergence">Repped</Text>
-            </View>
+        <StyledView className="flex-1 items-center justify-center bg-white">
+            {cards.length > 0 ? (
+                cards.map((card) => {
+                    console.log(card.img[0]);
 
-            <View className="flex-1 bg-black mt-20 rounded-t-2xl ">
-                <Text className="flex text-2xl text-white font-convergence p-10">Login</Text>
-                <TextInput
-                    className="flex ml-10 bg-white  p-2 w-[80%] rounded-md mb-4"
-                    placeholder="Email"
-                    value={email}
-                    onChange={setEmail}
-                />
-                <TextInput
-                    className="flex ml-10 bg-white  p-2 w-[80%] rounded-md mb-4"
-                    placeholder="Password"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                />
-                <TouchableOpacity
-                    className="w-[80%] bg-purple-500 p-2 rounded-md items-center ml-10 mt-5"
-                    onPress={handleLogin}
-                >
-                    <Text className="text-white font-semibold ">Login</Text>
-                </TouchableOpacity>
+                    return (
+                        <View key={card.id} style={styles.cardContainer}>
+                            <TinderCard
+                                onSwipe={(dir) => swiped(dir, card.name)}
+                                onCardLeftScreen={() => outOfFrame(card.name)}
+                                preventSwipe={['up', 'down']}
+                            >
+                                <StyledView className="w-72 h-96 bg-white rounded-2xl shadow-lg items-center justify-end pb-5">
+                                    <Image source={{ uri: card.img[0], width: 400, height: 600 }} />
 
-                <Text className="text-white mt-5 ml-10">
-                    Already have an account? <Text className="text-purple-500">Sign Up</Text>
-                </Text>
-                <View className="flex justify-center space-x-10 mt-20 flex-row ">
-                    <TouchableOpacity className="mr-3">
-                        <Icon name="facebook" size={24} color="white" />
-                    </TouchableOpacity>
-                    <TouchableOpacity>
-                        <Icon name="google" size={24} color="white" />
-                    </TouchableOpacity>
-                    <TouchableOpacity className="ml-3">
-                        <Icon name="twitter" size={24} color="white" />
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-        </>
+                                    <StyledText className="text-lg font-bold text-gray-800">{card.name}</StyledText>
+                                    <StyledText className="text-base text-gray-600">Price: ₹{card.price}</StyledText>
+                                    <StyledText className="text-sm text-gray-400">Discount: {card.discount}%</StyledText>
+                                    <StyledText className="text-sm text-gray-400">Seller: {card.seller}</StyledText>
+                                </StyledView>
+                            </TinderCard>
+                        </View>
+                    );
+                })
+            ) : (
+                <StyledText className="text-center text-lg text-gray-500">Loading cards...</StyledText>
+            )}
+        </StyledView>
     );
 }
 
-export default Login;
+const styles = StyleSheet.create({
+    cardContainer: {
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+});
